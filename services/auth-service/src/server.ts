@@ -11,7 +11,7 @@ async function startServer() {
     try {
         await connectDB();
         app.listen(PORT,()=>{
-            console.log(`Expense Server is running on Port:${PORT}`)
+            console.log(`Auth Server is running on Port:${PORT}`)
         })
         
     } catch (error) {
