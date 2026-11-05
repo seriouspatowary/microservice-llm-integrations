@@ -1,0 +1,54 @@
+
+services:
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    image: api-gateway:local
+    container_name: api-gateway
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./api-gateway/.env
+    depends_on:
+      - auth-service
+      - expense-service
+      - fake-news-service
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    image: auth-service:local
+    container_name: auth-service
+    env_file:
+      - ./services/auth-service/.env
+    expose:
+      - "5003"
+    restart: unless-stopped
+
+  expense-service:
+    build:
+      context: ./services/expense-service
+      dockerfile: Dockerfile
+    image: expense-service:local
+    container_name: expense-service
+    env_file:
+      - ./services/expense-service/.env
+    expose:
+      - "5001"
+    restart: unless-stopped
+
+  fake-news-service:
+    build:
+      context: ./services/fake-news-service
+      dockerfile: Dockerfile
+    image: fake-news-service:local
+    container_name: fake-news-service
+    env_file:
+      - ./services/fake-news-service/.env
+    expose:
+      - "5002"
+    restart: unless-stopped
