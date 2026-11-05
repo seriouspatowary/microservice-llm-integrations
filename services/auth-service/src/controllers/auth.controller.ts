@@ -26,11 +26,11 @@ export async function register(
     return;
   }
 
-  const { name, password, role } = parsed.data;
-  const email = parsed.data.email.toLowerCase();
+  const { name, email, password, role } = parsed.data;
+  const emailLower = email.toLowerCase();
 
   try {
-    await registerUser(name, email, password, role);
+    await registerUser(name, emailLower, password, role);
 
     res.status(201).json({
       message: "Registered successfully",
