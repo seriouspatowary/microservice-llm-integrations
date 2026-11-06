@@ -1,35 +1,26 @@
-
-name: CI Pipeline
+name: Deploy Microservices
 
 on:
   push:
     branches:
       - main
 
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  test-runner:
-    name: Test GitHub Hosted Runner
-    runs-on: ubuntu-24.04
+  deploy:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Check Node.js
-        run: node --version
-
-      - name: Check npm
-        run: npm --version
-
-      - name: Check Docker
-        run: docker --version
-
-      - name: Check Docker Compose
-        run: docker compose version
-
-      - name: Runner successful
-        run: echo "GitHub Hosted Runner is working!"
+      - name: Verify Deployment Trigger
+        run: |
+          echo "Deployment triggered!"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Commit: $GITHUB_SHA"
