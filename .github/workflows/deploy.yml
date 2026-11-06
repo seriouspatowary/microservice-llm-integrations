@@ -1,5 +1,5 @@
 
-name: Deploy Microservices
+name: Build and Push Microservices
 
 on:
   push:
@@ -12,30 +12,12 @@ permissions:
   packages: write
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect Changed Services
-        id: changes
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            api_gateway:
-              - 'api-gateway/**'
-            auth_service:
-              - 'services/auth-service/**'
-            expense_service:
-              - 'services/expense-service/**'
-            fake_news_service:
-              - 'services/fake-news-service/**'
-            compose:
-              - 'docker-compose.prod.yml'
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -45,111 +27,40 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      # API Gateway
       - name: Build and Push API Gateway
-        if: steps.changes.outputs.api_gateway == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./api-gateway
-          file: ./api-gateway/Dockerfile
           push: true
           tags: |
             ghcr.io/seriouspatowary/micro-service-rbac/api-gateway:latest
             ghcr.io/seriouspatowary/micro-service-rbac/api-gateway:${{ github.sha }}
-          cache-from: type=gha,scope=api-gateway
-          cache-to: type=gha,mode=max,scope=api-gateway
 
-      # Auth Service
       - name: Build and Push Auth Service
-        if: steps.changes.outputs.auth_service == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./services/auth-service
-          file: ./services/auth-service/Dockerfile
           push: true
           tags: |
             ghcr.io/seriouspatowary/micro-service-rbac/auth-service:latest
             ghcr.io/seriouspatowary/micro-service-rbac/auth-service:${{ github.sha }}
-          cache-from: type=gha,scope=auth-service
-          cache-to: type=gha,mode=max,scope=auth-service
 
-      # Expense Service
       - name: Build and Push Expense Service
-        if: steps.changes.outputs.expense_service == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./services/expense-service
-          file: ./services/expense-service/Dockerfile
           push: true
           tags: |
             ghcr.io/seriouspatowary/micro-service-rbac/expense-service:latest
             ghcr.io/seriouspatowary/micro-service-rbac/expense-service:${{ github.sha }}
-          cache-from: type=gha,scope=expense-service
-          cache-to: type=gha,mode=max,scope=expense-service
 
-      # Fake News Service
       - name: Build and Push Fake News Service
-        if: steps.changes.outputs.fake_news_service == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./services/fake-news-service
-          file: ./services/fake-news-service/Dockerfile
           push: true
           tags: |
             ghcr.io/seriouspatowary/micro-service-rbac/fake-news-service:latest
             ghcr.io/seriouspatowary/micro-service-rbac/fake-news-service:${{ github.sha }}
-          cache-from: type=gha,scope=fake-news-service
-          cache-to: type=gha,mode=max,scope=fake-news-service
-
-      - name: Configure SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
-      - name: Add VPS to Known Hosts
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
-
-      - name: Deploy Changed Services
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-          IMAGE_TAG: ${{ github.sha }}
-          DEPLOY_GATEWAY: ${{ steps.changes.outputs.api_gateway }}
-          DEPLOY_AUTH: ${{ steps.changes.outputs.auth_service }}
-          DEPLOY_EXPENSE: ${{ steps.changes.outputs.expense_service }}
-          DEPLOY_FAKE_NEWS: ${{ steps.changes.outputs.fake_news_service }}
-          DEPLOY_COMPOSE: ${{ steps.changes.outputs.compose }}
-        run: |
-          ssh "$VPS_USER@$VPS_HOST" "
-            set -e
-            cd /root/micro-service-RBAC
-            export IMAGE_TAG=$IMAGE_TAG
-
-            if [ '$DEPLOY_GATEWAY' = 'true' ] || [ '$DEPLOY_COMPOSE' = 'true' ]; then
-              docker compose -f docker-compose.prod.yml pull api-gateway
-              docker compose -f docker-compose.prod.yml up -d --no-deps api-gateway
-            fi
-
-            if [ '$DEPLOY_AUTH' = 'true' ] || [ '$DEPLOY_COMPOSE' = 'true' ]; then
-              docker compose -f docker-compose.prod.yml pull auth-service
-              docker compose -f docker-compose.prod.yml up -d --no-deps auth-service
-            fi
-
-            if [ '$DEPLOY_EXPENSE' = 'true' ] || [ '$DEPLOY_COMPOSE' = 'true' ]; then
-              docker compose -f docker-compose.prod.yml pull expense-service
-              docker compose -f docker-compose.prod.yml up -d --no-deps expense-service
-            fi
-
-            if [ '$DEPLOY_FAKE_NEWS' = 'true' ] || [ '$DEPLOY_COMPOSE' = 'true' ]; then
-              docker compose -f docker-compose.prod.yml pull fake-news-service
-              docker compose -f docker-compose.prod.yml up -d --no-deps fake-news-service
-            fi
-
-            docker image prune -f
-          "
