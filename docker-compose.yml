@@ -1,11 +1,7 @@
 
 services:
-
   api-gateway:
-    build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
-    image: api-gateway:local
+    image: ghcr.io/seriouspatowary/micro-service-rbac/api-gateway:${IMAGE_TAG:-latest}
     container_name: api-gateway
     ports:
       - "4000:4000"
@@ -18,10 +14,7 @@ services:
     restart: unless-stopped
 
   auth-service:
-    build:
-      context: ./services/auth-service
-      dockerfile: Dockerfile
-    image: auth-service:local
+    image: ghcr.io/seriouspatowary/micro-service-rbac/auth-service:${IMAGE_TAG:-latest}
     container_name: auth-service
     env_file:
       - ./services/auth-service/.env
@@ -30,10 +23,7 @@ services:
     restart: unless-stopped
 
   expense-service:
-    build:
-      context: ./services/expense-service
-      dockerfile: Dockerfile
-    image: expense-service:local
+    image: ghcr.io/seriouspatowary/micro-service-rbac/expense-service:${IMAGE_TAG:-latest}
     container_name: expense-service
     env_file:
       - ./services/expense-service/.env
@@ -42,10 +32,7 @@ services:
     restart: unless-stopped
 
   fake-news-service:
-    build:
-      context: ./services/fake-news-service
-      dockerfile: Dockerfile
-    image: fake-news-service:local
+    image: ghcr.io/seriouspatowary/micro-service-rbac/fake-news-service:${IMAGE_TAG:-latest}
     container_name: fake-news-service
     env_file:
       - ./services/fake-news-service/.env
