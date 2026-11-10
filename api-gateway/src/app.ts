@@ -13,7 +13,7 @@ app.use((req, _res, next) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("Hello from API Gateway!");
+  res.send("Hello from API Gateway 2.0!");
 });
 
 // Auth service

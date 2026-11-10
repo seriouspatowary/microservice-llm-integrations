@@ -1,18 +1,54 @@
 
-name: Build and Push Microservices
+name: Build and Deploy Microservices
 
 on:
   push:
     branches:
       - main
+
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+
+    outputs:
+      gateway: ${{ steps.filter.outputs.gateway }}
+      auth: ${{ steps.filter.outputs.auth }}
+      expense: ${{ steps.filter.outputs.expense }}
+      fake_news: ${{ steps.filter.outputs.fake_news }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Detect Changed Services
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            gateway:
+              - 'api-gateway/**'
+
+            auth:
+              - 'services/auth-service/**'
+
+            expense:
+              - 'services/expense-service/**'
+
+            fake_news:
+              - 'services/fake-news-service/**'
+
   build:
+    needs: detect-changes
     runs-on: ubuntu-latest
 
     steps:
@@ -26,10 +62,12 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # API GATEWAY
       - name: Build and Push API Gateway
+        if: needs.detect-changes.outputs.gateway == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: ./api-gateway
@@ -38,7 +76,9 @@ jobs:
             ghcr.io/seriouspatowary/micro-service-rbac/api-gateway:latest
             ghcr.io/seriouspatowary/micro-service-rbac/api-gateway:${{ github.sha }}
 
+      # AUTH SERVICE
       - name: Build and Push Auth Service
+        if: needs.detect-changes.outputs.auth == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: ./services/auth-service
@@ -47,7 +87,9 @@ jobs:
             ghcr.io/seriouspatowary/micro-service-rbac/auth-service:latest
             ghcr.io/seriouspatowary/micro-service-rbac/auth-service:${{ github.sha }}
 
+      # EXPENSE SERVICE
       - name: Build and Push Expense Service
+        if: needs.detect-changes.outputs.expense == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: ./services/expense-service
@@ -56,7 +98,9 @@ jobs:
             ghcr.io/seriouspatowary/micro-service-rbac/expense-service:latest
             ghcr.io/seriouspatowary/micro-service-rbac/expense-service:${{ github.sha }}
 
+      # FAKE NEWS SERVICE
       - name: Build and Push Fake News Service
+        if: needs.detect-changes.outputs.fake_news == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: ./services/fake-news-service
@@ -64,3 +108,65 @@ jobs:
           tags: |
             ghcr.io/seriouspatowary/micro-service-rbac/fake-news-service:latest
             ghcr.io/seriouspatowary/micro-service-rbac/fake-news-service:${{ github.sha }}
+
+  deploy:
+    needs:
+      - detect-changes
+      - build
+
+    if: |
+      needs.detect-changes.outputs.gateway == 'true' ||
+      needs.detect-changes.outputs.auth == 'true' ||
+      needs.detect-changes.outputs.expense == 'true' ||
+      needs.detect-changes.outputs.fake_news == 'true' ||
+      github.event_name == 'workflow_dispatch'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Changed Services to VPS
+        uses: appleboy/ssh-action@v1
+        env:
+          GATEWAY_CHANGED: ${{ needs.detect-changes.outputs.gateway }}
+          AUTH_CHANGED: ${{ needs.detect-changes.outputs.auth }}
+          EXPENSE_CHANGED: ${{ needs.detect-changes.outputs.expense }}
+          FAKE_NEWS_CHANGED: ${{ needs.detect-changes.outputs.fake_news }}
+          FORCE_ALL: ${{ github.event_name == 'workflow_dispatch' }}
+
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+          envs: GATEWAY_CHANGED,AUTH_CHANGED,EXPENSE_CHANGED,FAKE_NEWS_CHANGED,FORCE_ALL
+
+          script: |
+            set -e
+
+            cd /root/micro-service-RBAC
+
+            SERVICES=""
+
+            if [ "$GATEWAY_CHANGED" = "true" ] || [ "$FORCE_ALL" = "true" ]; then
+              SERVICES="$SERVICES api-gateway"
+            fi
+
+            if [ "$AUTH_CHANGED" = "true" ] || [ "$FORCE_ALL" = "true" ]; then
+              SERVICES="$SERVICES auth-service"
+            fi
+
+            if [ "$EXPENSE_CHANGED" = "true" ] || [ "$FORCE_ALL" = "true" ]; then
+              SERVICES="$SERVICES expense-service"
+            fi
+
+            if [ "$FAKE_NEWS_CHANGED" = "true" ] || [ "$FORCE_ALL" = "true" ]; then
+              SERVICES="$SERVICES fake-news-service"
+            fi
+
+            echo "Deploying: $SERVICES"
+
+            docker compose pull $SERVICES
+
+            docker compose up -d --no-deps $SERVICES
+
+            docker compose ps
