@@ -7,6 +7,11 @@ const app = express();
 
 app.use(cors());
 
+app.use((req, _res, next) => {
+    console.log("Fake News received:", req.method, req.originalUrl);
+    next();
+});
+
 app.get("/", (req, res) => {
   res.send("Hello from API Gateway!");
 });
@@ -31,6 +36,23 @@ app.use(
   })
 );
 
+app.use(
+  createProxyMiddleware({
+    pathFilter: "/api/rag",
+    target: "http://fake-news-service:5002",
+    changeOrigin: true,
+    on: {
+      proxyReq: (proxyReq, req) => {
+        console.log("Incoming:", req.originalUrl);
+        console.log("Forwarding:", proxyReq.path);
+      },
+      error: (err, req, res) => {
+        console.error("Fake News proxy error:", err.message);
+      },
+    },
+  })
+);
+ 
 
 app.use(express.json());
 

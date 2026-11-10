@@ -8,10 +8,12 @@ const PORT = process.env.PORT || 3002;
 
 async function StartServer() {
     try {
-        await connectDB();
+       
         app.listen(PORT,()=>{
             console.log(`Fake News Detection Server is running on :${PORT}`)
         })
+
+        await connectDB();
         
     } catch (error) {
         console.error('Server startup failed because PostGresql is unavailable');

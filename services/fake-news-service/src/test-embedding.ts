@@ -1,14 +1,12 @@
 import { generateEmbedding } from "./rag/embedding.service.js";
 
-async function main() {
-  const text = "Government announces a new education policy.";
+async function test() {
+    const embedding = await generateEmbedding(
+        "Employees are entitled to 12 casual leaves annually."
+    );
 
-  console.log("Generating embedding...");
-
-  const embedding = await generateEmbedding(text);
-
-  console.log("Dimensions:", embedding.length);
-  console.log("First 5 values:", embedding.slice(0, 5));
+    console.log("Embedding dimension:", embedding.length);
+    console.log("First 5 values:", embedding.slice(0, 5));
 }
 
-main().catch(console.error);
+test().catch(console.error);
