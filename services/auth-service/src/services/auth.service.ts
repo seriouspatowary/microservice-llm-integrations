@@ -170,7 +170,7 @@ export async function loginUser(email: string, password: string) {
       name: user.name,
       email: user.email,
       roles: access.roles,
-      permissions: access.permissions,
+
     },
     accessToken,
     refreshToken,

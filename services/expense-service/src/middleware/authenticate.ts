@@ -70,9 +70,17 @@ export function authenticate(
     };
 
     next();
-  } catch {
-    res.status(401).json({
-      message: "Invalid or expired access token",
-    });
+  } catch (error) {
+  if (error instanceof jwt.TokenExpiredError) {
+    console.error("JWT expired:", error.expiredAt);
+  } else if (error instanceof jwt.JsonWebTokenError) {
+    console.error("JWT verification failed:", error.message);
+  } else {
+    console.error("JWT verification error:", error);
   }
+
+  res.status(401).json({
+    message: "Invalid or expired access token",
+  });
+}
 }

@@ -2,8 +2,8 @@ import { Router } from "express";
 
 import { authenticate } from "../middleware/authenticate.js";
 import { authorizePermissions } from "../middleware/authorize.js";
-import { createExpense, getExpense } from "../controllers/expense.controller.js";
-import { createIncome } from "../controllers/income.controller.js";
+import { createExpense, getExpense, updateExpense, deleteExpense } from "../controllers/expense.controller.js";
+import { createIncome, getIncome, updateIncome , deleteIncome} from "../controllers/income.controller.js";
 
 
 const router = Router();
@@ -23,12 +23,50 @@ router.get(
 );
 
 
+router.patch(
+  "/:id",
+  authenticate,
+  authorizePermissions("expenses:update"),
+  updateExpense
+);
+
+
+router.delete(
+  "/:id",
+  authenticate,
+  authorizePermissions("expenses:delete"),
+  deleteExpense
+);
+
 router.post(
   "/income",
   authenticate,
   authorizePermissions("income:add"),
   createIncome
 );
+
+router.get(
+  "/income",
+  authenticate,
+  authorizePermissions("income:read"),
+  getIncome,
+);
+
+router.patch(
+  "/income/:id",
+  authenticate,
+  authorizePermissions("income:edit"),
+  updateIncome,
+);
+
+router.delete(
+  "/income/:id",
+  authenticate,
+  authorizePermissions("income:delete"),
+  deleteIncome,
+);
+
+
 
 
 

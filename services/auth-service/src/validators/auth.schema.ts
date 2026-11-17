@@ -3,7 +3,7 @@ import { z } from "zod";
 export const registerSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(255),
-  password: z.string().min(8).max(72),
+  password: z.string().min(6).max(72),
   role: z.enum(["EXPENSE_USER", "FAKE_NEWS_USER"]),
 });
 

@@ -9,6 +9,23 @@ export interface CreateExpenseInput {
   expenseDate?: string | undefined;
 }
 
+interface UpdateExpenseInput {
+  id: string;
+  userId: string;
+  title?: string | undefined;
+  amount?: number | undefined;
+  description?: string | null | undefined;
+}
+
+
+interface DeleteExpenseInput {
+  id: string;
+  userId: string;
+}
+
+
+
+
 export async function createExpenseService(
   data: CreateExpenseInput
 ) {
@@ -80,4 +97,70 @@ export async function getExpensesByUserId(userId: string) {
   const { rows } = await pool.query(query, [userId]);
 
   return rows;
+}
+
+
+
+
+
+
+
+export async function updateExpenseService({
+  id,
+  userId,
+  title,
+  amount,
+  description,
+}: UpdateExpenseInput) {
+  const query = `
+    UPDATE expenses
+    SET
+      title = COALESCE($1, title),
+      amount = COALESCE($2, amount),
+      description = CASE
+        WHEN $3::boolean THEN $4::text
+        ELSE description
+      END
+    WHERE id = $5
+      AND user_id = $6
+    RETURNING
+      id,
+      user_id,
+      title,
+      amount,
+      description,
+      expense_date,
+      created_at;
+  `;
+
+  const values = [
+    title ?? null,
+    amount ?? null,
+    description !== undefined,
+    description ?? null,
+    id,
+    userId,
+  ];
+
+  const result = await pool.query(query, values);
+
+  return result.rows[0] ?? null;
+}
+
+
+export async function deleteExpenseService({id, userId}:DeleteExpenseInput) {
+
+  const query = `DELETE FROM expenses WHERE id = $1 AND user_id = $2 RETURNING id,
+      user_id,
+      title,
+      amount,
+      description,
+      expense_date,
+      created_at;`;
+
+  const result = await pool.query(query,[id, userId]);
+  
+  return result.rows[0] ?? null;
+  
+
 }

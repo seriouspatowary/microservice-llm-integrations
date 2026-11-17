@@ -5,12 +5,29 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  
+]
 
-app.use((req, _res, next) => {
-    console.log("Fake News received:", req.method, req.originalUrl);
-    next();
-});
+
+app.use(cors({
+  origin:(origin,callback)=>{
+
+       console.log("incoming origin:",origin)
+       if(!origin || allowedOrigins.includes(origin)){
+          callback(null,true)
+       }else{
+          callback(new Error("Not allowed by CORS"))
+       }
+  },
+  credentials: true,
+  methods: ["GET", "POST","PATCH", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+
 
 app.get("/", (req, res) => {
   res.send("Hello from API Gateway 2.0!");
@@ -43,8 +60,7 @@ app.use(
     changeOrigin: true,
     on: {
       proxyReq: (proxyReq, req) => {
-        console.log("Incoming:", req.originalUrl);
-        console.log("Forwarding:", proxyReq.path);
+       
       },
       error: (err, req, res) => {
         console.error("Fake News proxy error:", err.message);
