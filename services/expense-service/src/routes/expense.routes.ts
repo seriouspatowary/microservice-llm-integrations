@@ -4,6 +4,7 @@ import { authenticate } from "../middleware/authenticate.js";
 import { authorizePermissions } from "../middleware/authorize.js";
 import { createExpense, getExpense, updateExpense, deleteExpense } from "../controllers/expense.controller.js";
 import { createIncome, getIncome, updateIncome , deleteIncome} from "../controllers/income.controller.js";
+import { getMonthlyExpenseReport } from "../controllers/expense-report.controller.js";
 
 
 const router = Router();
@@ -66,6 +67,12 @@ router.delete(
   deleteIncome,
 );
 
+router.get(
+  "/report",
+  authenticate,
+  authorizePermissions("expenses:read"),
+  getMonthlyExpenseReport
+);
 
 
 

@@ -6,6 +6,7 @@ import { uploadDocument } from "../../../middleware/upload.js";
 import { askController, deleteDocumentController, listDocumentsController, uploadDocumentController } from "../controller/rag.controller.js";
 
 
+
 const router = Router();
 
 router.post(
@@ -38,5 +39,10 @@ router.post(
     authorizePermissions("fake_news:ask"),
     askController
 );
+
+
+
+
+
 
 export default router;

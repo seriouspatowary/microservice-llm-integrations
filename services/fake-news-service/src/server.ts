@@ -1,4 +1,3 @@
-
 import dotenv from "dotenv";
 import app from "./app.js";
 import { connectDB } from "./config/db.js";
@@ -10,24 +9,28 @@ const PORT = process.env.PORT || 3002;
 
 async function StartServer() {
   try {
-    // ✅ STEP 1: Connect to PostgreSQL first
+    // Step 1: Connect PostgreSQL
     await connectDB();
     console.log("PostgreSQL connected");
 
-    // ✅ STEP 2: Initialize and warm up LLM
-    // Wait until the model is completely ready
-    console.log("Initializing LLM...");
-
-    await initializeLLM();
-
-    console.log("LLM ready to accept requests");
-
-    // ✅ STEP 3: Start server only after dependencies are ready
+    // Step 2: Start Express server
     app.listen(PORT, () => {
       console.log(
-        `Fake News Detection Server is running on :${PORT}`
+        `Fake News Service running on port ${PORT}`
       );
     });
+
+    // Step 3: Initialize Qwen LLM in background
+    console.log("Initializing LLM...");
+
+    void initializeLLM()
+      .then(() => {
+        console.log("LLM ready to accept requests");
+      })
+      .catch((error) => {
+        console.error("LLM initialization failed:", error);
+      });
+
   } catch (error) {
     console.error("Server startup failed:", error);
     process.exit(1);
